@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0a0c0d">
+<title>ZONA CERO — Última señal</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0c0d'/%3E%3Cpath d='M8 8h16v5H13v4h9v5h-9v5H8z' fill='%23d3fb64'/%3E%3C/svg%3E">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap');
+:root{--lime:#d3fb64;--red:#f35c4b;--ink:#0a0c0d;--panel:rgba(13,17,17,.91);--line:rgba(224,238,215,.15);--muted:#91a09a;--xp:#8ac7b4}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--ink);color:#eaf0e8;font-family:Inter,system-ui,sans-serif;touch-action:none;-webkit-tap-highlight-color:transparent}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;background:#121716;cursor:crosshair}
+.vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 36%,rgba(2,5,5,.25) 77%,rgba(2,5,5,.75));z-index:1}
+.grain{position:fixed;inset:-50%;width:200%;height:200%;z-index:2;opacity:.035;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");background-size:180px 180px}
+@keyframes grain{0%{transform:translate(0,0)}100%{transform:translate(-3%,2%)}}
+#hud{position:fixed;inset:0;z-index:3;display:none;pointer-events:none}
+.topline{position:absolute;top:20px;left:24px;right:24px;display:flex;justify-content:space-between;align-items:flex-start}
+.brand{font:700 13px 'DM Mono',monospace;letter-spacing:.18em;color:var(--lime)}
+.location{margin-top:5px;font:500 11px 'DM Mono',monospace;letter-spacing:.14em;color:#a6b0a9}
+.objective{position:absolute;top:22px;left:50%;transform:translateX(-50%);padding:11px 18px;background:var(--panel);border:1px solid var(--line);border-left:2px solid var(--lime);min-width:245px;text-align:center;backdrop-filter:blur(8px)}
+.objective small{font:10px 'DM Mono',monospace;letter-spacing:.15em;color:var(--lime);display:block;margin-bottom:4px}
+.objective span{font-size:13px;font-weight:600}
+.counter{font:12px 'DM Mono',monospace;color:#d4d9d2}
+.corner{background:var(--panel);border:1px solid var(--line);padding:10px 13px;backdrop-filter:blur(8px)}
+.playerpanel{position:absolute;bottom:22px;left:24px;width:268px;padding:13px;background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(8px)}
+.row{display:flex;align-items:center;justify-content:space-between}
+.label{font:10px 'DM Mono',monospace;letter-spacing:.12em;color:#aab4ab;white-space:nowrap}
+.hpnum{font:12px 'DM Mono',monospace}
+.bar{height:5px;background:#28302b;margin:8px 0 10px;overflow:hidden}
+.bar i{display:block;width:100%;height:100%;background:var(--lime);transition:width .18s}
+.xpbar{height:3px;margin:6px 0 0;background:#243029}
+.xpbar i{background:var(--xp)}
+.ammo{position:absolute;right:25px;bottom:23px;background:var(--panel);border:1px solid var(--line);padding:11px 15px;text-align:right;backdrop-filter:blur(8px)}
+.ammo strong{font:700 28px 'Barlow Condensed',sans-serif;letter-spacing:.04em}
+.ammo small{color:var(--muted);font:10px 'DM Mono',monospace}
+.toast{position:absolute;left:50%;bottom:105px;transform:translateX(-50%);font:11px 'DM Mono',monospace;letter-spacing:.03em;color:#f5f4e8;background:rgba(11,14,13,.86);border:1px solid var(--line);padding:9px 14px;opacity:0;transition:opacity .2s;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+.toast.show{opacity:1}
+.interact{position:absolute;left:50%;bottom:72px;transform:translateX(-50%);color:var(--lime);font:11px 'DM Mono',monospace;letter-spacing:.06em;opacity:0;text-shadow:0 0 12px rgba(211,251,100,.5);white-space:nowrap}
+.interact.show{opacity:1}
+.overlay{position:fixed;inset:0;z-index:5;display:flex;touch-action:pan-y;align-items:center;justify-content:center;background:linear-gradient(90deg,rgba(5,8,8,.96) 0%,rgba(5,8,8,.86) 45%,rgba(5,8,8,.6) 100%),linear-gradient(0deg,rgba(5,8,8,.55),transparent 46%)}
+.overlay:before{content:'';position:absolute;inset:0 0 0 42%;background:radial-gradient(ellipse at 68% 42%,rgba(122,137,99,.18),transparent 54%),linear-gradient(125deg,transparent 38%,rgba(208,220,171,.08) 38.2%,transparent 38.8%),repeating-linear-gradient(90deg,transparent 0 110px,rgba(180,198,154,.06) 111px 113px,transparent 114px 210px);mask-image:linear-gradient(90deg,transparent,#000 38%);opacity:.85}
+.intro{position:relative;width:min(1080px,90vw);display:grid;grid-template-columns:1fr .75fr;align-items:center;gap:50px}
+.eyebrow{font:11px 'DM Mono',monospace;color:var(--lime);letter-spacing:.23em;text-transform:uppercase;display:flex;gap:11px;align-items:center}
+.eyebrow:before{content:'';width:28px;height:1px;background:var(--lime)}
+h1{font:800 clamp(66px,10vw,128px)/.8 'Barlow Condensed',Impact,sans-serif;letter-spacing:-.03em;margin:28px 0 21px;color:#f2f2e9}
+h1 span{display:block;color:var(--lime)}
+.subtitle{font:12px 'DM Mono',monospace;letter-spacing:.18em;color:#aeb8ad;margin-bottom:25px}
+.desc{font-size:14px;line-height:1.75;color:#b3beb5;max-width:490px}
+.briefing{margin-top:26px;border-left:1px solid rgba(211,251,100,.42);padding:2px 0 2px 15px;font-size:12px;line-height:1.65;color:#cbd2c8;max-width:465px}
+.briefing b{font:10px 'DM Mono',monospace;letter-spacing:.14em;color:var(--lime);display:block;margin-bottom:4px}
+.startbtn{margin-top:30px;border:0;background:var(--lime);color:#11170c;padding:15px 25px;font:700 12px 'DM Mono',monospace;letter-spacing:.1em;cursor:pointer;transition:transform .15s,background .15s}
+.startbtn:hover{transform:translateY(-2px);background:#e2ff89}
+.controls{margin-top:17px;font:10px 'DM Mono',monospace;color:#7f8c83;line-height:1.7}
+.sidecard{justify-self:end;width:min(285px,100%);padding:20px 19px;background:rgba(9,13,12,.76);border:1px solid rgba(225,236,215,.17);backdrop-filter:blur(7px)}
+.cardtop{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:12px;font:10px 'DM Mono',monospace;letter-spacing:.12em;color:#aeb9af}
+.cardtop b{color:var(--red);font-weight:500}
+.stat{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(225,236,215,.08);font-size:11px;color:#aab4ab}
+.stat strong{font:11px 'DM Mono',monospace;color:#e5ebe2;font-weight:500}
+.cardnote{margin-top:16px;font:10px/1.65 'DM Mono',monospace;color:#87938b}
+.hidden{display:none!important}
+.touch-only{display:none}
+.mobile-controls{display:none;position:absolute;inset:auto 0 20px;justify-content:space-between;align-items:end;padding:0 18px;pointer-events:auto}
+#hud.mobile .mobile-controls{display:flex}
+#hud.mobile .playerpanel,#hud.mobile .ammo{bottom:184px}
+#hud.mobile .toast{bottom:272px}
+#hud.mobile .interact{bottom:300px}
+.dpad{display:grid;grid-template-columns:45px 45px 45px;grid-template-rows:45px 45px 45px;gap:3px}
+.touchkey{border:1px solid rgba(231,241,222,.3);background:rgba(15,21,19,.72);color:#e8eee5;font:15px 'DM Mono',monospace;border-radius:4px;display:grid;place-items:center;user-select:none;-webkit-user-select:none;touch-action:none}
+.touchkey:active{background:rgba(211,251,100,.22)}
+.dpad .up{grid-column:2}
+.dpad .left{grid-column:1;grid-row:2}
+.dpad .down{grid-column:2;grid-row:2}
+.dpad .right{grid-column:3;grid-row:2}
+.actions{display:flex;gap:9px}
+.actions .touchkey{width:58px;height:58px;font-size:10px;letter-spacing:.05em}
+.actions .fire{color:var(--red);border-color:rgba(243,92,75,.6)}
+.modal{position:fixed;inset:0;z-index:6;display:flex;align-items:center;justify-content:center;background:rgba(4,8,7,.84);backdrop-filter:blur(5px);padding:20px}
+.levelcard{width:min(790px,94vw);padding:30px 32px 28px;background:#0e1513;border:1px solid rgba(211,251,100,.26);box-shadow:0 30px 90px rgba(0,0,0,.6);position:relative}
+.levelcard:before{content:'';position:absolute;left:0;top:0;width:4px;height:100%;background:var(--lime)}
+.levelcard .eyebrow{margin-bottom:14px}
+.levelcard h2{font:800 clamp(36px,6vw,56px)/.95 'Barlow Condensed',sans-serif;margin:0 0 8px;letter-spacing:.01em}
+.levelcard h2 span{color:var(--lime)}
+.levelcard .lede{font-size:12px;line-height:1.6;color:#98a59d;margin:0 0 20px;max-width:560px}
+.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.choice{border:1px solid rgba(224,238,215,.16);background:#121b18;padding:15px 14px;cursor:pointer;text-align:left;color:#eef3ea;transition:border-color .15s,transform .15s,background .15s;font-family:inherit;min-height:126px;display:flex;flex-direction:column;gap:8px}
+.choice:hover{border-color:var(--lime);transform:translateY(-3px);background:#17231e}
+.choice .num{font:10px 'DM Mono',monospace;color:var(--lime);letter-spacing:.1em}
+.choice b{font:600 14px/1.2 Inter,sans-serif}
+.choice small{font:11px/1.5 Inter,sans-serif;color:#94a299}
+.choice .ic{margin-top:auto;font:18px 'DM Mono',monospace;color:rgba(211,251,100,.7)}
+.notecard{width:min(560px,92vw);padding:30px 32px;background:#0e1513;border:1px solid rgba(224,238,215,.2);position:relative;box-shadow:0 30px 90px rgba(0,0,0,.6)}
+.notecard:before{content:'ARCHIVO CLASIFICADO';position:absolute;top:13px;right:16px;font:9px 'DM Mono',monospace;letter-spacing:.14em;color:#64736a}
+.notecard h2{font:700 30px 'Barlow Condensed',sans-serif;letter-spacing:.04em;margin:14px 0 16px}
+.notecard p{font:12px/1.85 'DM Mono',monospace;color:#b7c2b8;margin:0 0 20px;border-left:1px solid rgba(211,251,100,.35);padding-left:15px}
+.notecard .reward{font:10px 'DM Mono',monospace;color:var(--lime);letter-spacing:.1em;margin-bottom:22px}
+.notecard .startbtn{margin-top:0}
+@media(max-width:760px){
+  .intro{display:block;width:86vw;max-height:92vh;overflow:auto;padding:6px 0}
+  .sidecard{display:none}
+  .overlay{background:linear-gradient(180deg,rgba(5,8,8,.95),rgba(5,8,8,.84) 52%,rgba(5,8,8,.96))}
+  .overlay:before{inset:0;mask-image:none;opacity:.28}
+  .subtitle{font-size:9.5px;letter-spacing:.12em;white-space:nowrap}
+  h1{font-size:clamp(68px,17vw,106px);margin-top:22px}
+  .desc{font-size:12px;max-width:420px}
+  .briefing{margin-top:16px}
+  .startbtn{margin-top:20px}
+  .controls{max-width:370px}
+  .topline{top:10px;left:12px;right:12px}
+  .brand{font-size:11px}
+  .location{font-size:9px}
+  .objective{top:52px;left:12px;right:12px;transform:none;padding:8px;min-width:0}
+  .objective small{font-size:9px}.objective span{font-size:11px}
+  .counter{padding:7px 9px;font-size:9px;margin-top:0}
+  .playerpanel{bottom:12px;left:12px;width:182px;padding:10px}
+  .label{font-size:8.5px;letter-spacing:.06em}
+  .ammo{right:12px;bottom:12px;padding:8px 10px}
+  .ammo strong{font-size:23px}
+  .interact{bottom:88px;font-size:10px}
+  .toast{bottom:112px;font-size:10px;max-width:78vw}
+  .mobile-controls{display:flex}
+  #xpText{display:none}
+  .desktop-only{display:none}
+  .touch-only{display:block}
+  .mobile-controls{padding-bottom:env(safe-area-inset-bottom)}
+  .topline{top:calc(10px + env(safe-area-inset-top))}
+  .choices{grid-template-columns:1fr;gap:7px}
+  .choice{min-height:0;flex-direction:row;align-items:center;flex-wrap:wrap;padding:11px 13px}
+  .choice b{font-size:13px}
+  .choice small{width:100%;font-size:10px}
+  .choice .ic{display:none}
+  .levelcard{padding:22px 20px;max-height:92vh;overflow-y:auto}
+  .notecard{padding:24px 22px;max-height:92vh;overflow-y:auto}
+  #game{cursor:default}
+}
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Juego de supervivencia Zona Cero"></canvas>
+<div class="vignette"></div><div class="grain"></div>
+
+<div id="hud">
+  <div class="topline">
+    <div>
+      <div class="brand">ZONA CERO <span style="color:#718078">/</span> R.P.D.</div>
+      <div class="location">DISTRITO DE CUARENTENA · 03:17 AM</div>
+    </div>
+    <div class="objective"><small>OBJETIVO PRINCIPAL</small><span id="objectiveText">Recupera las muestras de sangre</span></div>
+    <div class="corner counter">MUESTRAS <span id="sampleCount" style="color:var(--lime)">0 / 3</span></div>
+  </div>
+  <div class="playerpanel">
+    <div class="row"><span class="label">ESTADO VITAL</span><span class="hpnum" id="hpText">100%</span></div>
+    <div class="bar"><i id="hpBar"></i></div>
+    <div class="row"><span class="label">SUPERVIVIENTE · <span id="levelText">NIV. 01</span></span><span class="label" id="xpText">XP 000</span></div>
+    <div class="bar xpbar"><i id="xpBar"></i></div>
+    <div class="row" style="margin-top:9px"><span class="label">BOTIQUINES <span id="medText" style="color:#e8eee5">1</span></span><span class="label">[F] USAR</span></div>
+  </div>
+  <div class="ammo"><strong id="ammoText">12 <small>/ 48</small></strong><br><small>9MM · <span id="weaponText">P-9</span> &nbsp; [R] RECARGAR</small></div>
+  <div id="interactHint" class="interact">[ E ] INTERACTUAR</div>
+  <div id="toast" class="toast"></div>
+  <div class="mobile-controls">
+    <div class="dpad">
+      <div class="touchkey up" data-key="w">▲</div>
+      <div class="touchkey left" data-key="a">◀</div>
+      <div class="touchkey down" data-key="s">▼</div>
+      <div class="touchkey right" data-key="d">▶</div>
+    </div>
+    <div class="actions">
+      <div class="touchkey" data-action="reload">REC</div>
+      <div class="touchkey" data-action="interact">USAR</div>
+      <div class="touchkey fire" data-action="fire">FUEGO</div>
+    </div>
+  </div>
+</div>
+
+<div id="title" class="overlay">
+  <div class="intro">
+    <section>
+      <div class="eyebrow">ARCHIVO 07 — UMBRAL</div>
+      <h1>ZONA<span>CERO</span></h1>
+      <div class="subtitle">SURVIVAL RPG · ÚLTIMA SEÑAL · 03:17 AM</div>
+      <p class="desc">La infección llegó al distrito antes del amanecer. La ciudad está sellada. Eres la última agente en pie y el helicóptero solo esperará una vez.</p>
+      <div class="briefing"><b>ORDEN DE MISIÓN</b>Recupera las tres muestras en la zona de cuarentena, elimina al experimento T-07 y alcanza el punto de extracción. Los infectados reaccionan al ruido. Sube de nivel. No desperdicies munición.</div>
+      <button class="startbtn" id="start">INICIAR MISIÓN &nbsp; →</button>
+      <div class="controls desktop-only">WASD / FLECHAS MOVER &nbsp;·&nbsp; RATÓN APUNTAR &nbsp;·&nbsp; CLIC / ESPACIO DISPARAR<br>E INTERACTUAR &nbsp;·&nbsp; R RECARGAR &nbsp;·&nbsp; F BOTIQUÍN &nbsp;·&nbsp; M SONIDO</div>
+      <div class="controls touch-only">TÁCTIL &nbsp;·&nbsp; DPAD MOVER &nbsp;·&nbsp; FUEGO APUNTA SOLO &nbsp;·&nbsp; USAR INTERACTÚA</div>
+    </section>
+    <aside class="sidecard">
+      <div class="cardtop"><span>INFORME DE CAMPO</span><b>● EN VIVO</b></div>
+      <div class="stat"><span>SECTOR</span><strong>CUARENTENA 07</strong></div>
+      <div class="stat"><span>AMENAZAS</span><strong>NO CONFIRMADAS</strong></div>
+      <div class="stat"><span>EXTRACCIÓN</span><strong>03:30 AM</strong></div>
+      <div class="stat"><span>ARCHIVOS</span><strong>3 DISPONIBLES</strong></div>
+      <div class="cardnote">«No son los muertos lo que me preocupa. Es lo que sigue llamando desde abajo.»<br><span style="color:#57645c">— transmisión interceptada</span></div>
+    </aside>
+  </div>
+</div>
+
+<div id="levelup" class="modal hidden">
+  <div class="levelcard">
+    <div class="eyebrow">ADN RECOMBINADO · NIVEL <span id="newLevel">02</span></div>
+    <h2>SUBE DE <span>NIVEL</span></h2>
+    <p class="lede">La exposición al suero T ha alterado tu metabolismo. Elige una mejora permanente para continuar la misión.</p>
+    <div class="choices" id="choices"></div>
+  </div>
+</div>
+
+<div id="note" class="modal hidden">
+  <div class="notecard">
+    <div class="eyebrow">DOCUMENTO RECUPERADO</div>
+    <h2 id="noteTitle">ARCHIVO</h2>
+    <p id="noteBody"></p>
+    <div class="reward" id="noteReward">+50 XP</div>
+    <button class="startbtn" id="noteClose">CERRAR &nbsp; [E]</button>
+  </div>
+</div>
+
+<div id="end" class="overlay hidden">
+  <div class="intro" style="display:block;max-width:620px">
+    <div class="eyebrow">ARCHIVO CERRADO</div>
+    <h1 id="endTitle" style="font-size:clamp(65px,10vw,105px)">MISIÓN<span>COMPLETA</span></h1>
+    <p class="desc" id="endCopy">Las muestras están a salvo. La señal vuelve a casa.</p>
+    <button class="startbtn" id="again">JUGAR DE NUEVO &nbsp; ↻</button>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
